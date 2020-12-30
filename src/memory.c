@@ -242,6 +242,7 @@ void markValue(Value value)
 void freeObjects()
 {
 	Obj *object = vm.objects;
+
 	while (object) {
 #ifdef DEBUG_LOG_GC
 		printf("%p free type %d\n", (void *)object, object->type);

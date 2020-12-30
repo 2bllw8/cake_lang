@@ -130,10 +130,10 @@ static Token number()
 	while (isDigit(peek()))
 		advance();
 
-	// bool is_float = false;
+	bool is_float = false;
 	// Fractional part (float)
 	if (peek() == '.' && isDigit(peekNext())) {
-		// is_float = true;
+		is_float = true;
 		// Consume the "."
 		advance();
 
@@ -141,7 +141,7 @@ static Token number()
 			advance();
 	}
 
-	return makeToken(TOKEN_NUMBER);
+	return makeToken(is_float ? TOKEN_FLOAT : TOKEN_INT);
 }
 
 static TokenType identifierType()
@@ -158,13 +158,22 @@ static TokenType identifierType()
 			switch (scanner.start[1]) {
 			case 'a':
 				return checkKeyword(2, 3, "lse", TOKEN_FALSE);
+			case 'l':
+				return checkKeyword(2, 3, "oat", TOKEN_TO_FLOAT);
 			case 'u':
 				return checkKeyword(2, 1, "n", TOKEN_FUN);
 			}
 		}
 		return TOKEN_IDENTIFIER;
 	case 'i':
-		return checkKeyword(1, 1, "f", TOKEN_IF);
+		if (scanner.current - scanner.start > 1) {
+			switch (scanner.start[1]) {
+			case 'f':
+				return TOKEN_IF;
+			case 'n':
+				return checkKeyword(2, 1, "t", TOKEN_TO_INT);
+			}
+		}
 	case 'n':
 		return checkKeyword(1, 2, "il", TOKEN_NIL);
 	case 'o':

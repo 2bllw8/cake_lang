@@ -32,6 +32,8 @@ typedef enum {
 	OP_NEGATE,
 	OP_NOT,
 	OP_PRINT,
+	OP_TO_FLOAT,
+	OP_TO_INT,
 	OP_JUMP,
 	OP_JUMP_IF_FALSE,
 	OP_LOOP,

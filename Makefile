@@ -1,5 +1,5 @@
 NAME := ccake
-MODE := debug
+MODE := release
 SOURCE_DIR := src
 
 CFLAGS := -Wall -Wextra -Werror -Wno-unused-parameter

@@ -27,7 +27,8 @@ static Value peek(int distance)
 static bool isFalsey(Value value)
 {
 	return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value)) ||
-		   (IS_NUMBER(value) && !AS_NUMBER(value));
+		   (IS_FLOAT(value) && !AS_FLOAT(value)) ||
+		   (IS_INT(value) && !AS_INT(value));
 }
 
 static void concatenate()
@@ -237,13 +238,20 @@ static bool invoke(ObjString *name, int argc)
 
 static bool runOpAdd()
 {
-	if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+	Value b = peek(0);
+	Value a = peek(1);
+	if (IS_STRING(a) && IS_STRING(b)) {
 		concatenate();
-	} else if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
-		double b = AS_NUMBER(pop());
-		double a = AS_NUMBER(pop());
-		push(NUMBER_VAL(a + b));
+	} else if (IS_FLOAT(a) && IS_FLOAT(b)) {
+		double b_num = AS_FLOAT(pop());
+		double a_num = AS_FLOAT(pop());
+		push(FLOAT_VAL(a_num + b_num));
+	} else if (IS_INT(a) && IS_INT(b)) {
+		long b_num = AS_INT(pop());
+		long a_num = AS_INT(pop());
+		push(INT_VAL(a_num + b_num));
 	} else {
+		fprintf(stderr, "\t\t a: %d, b: %d\n", a.type, b.type);
 		runtimeError("Operands must be two numbers or two strings");
 		return false;
 	}
@@ -277,13 +285,24 @@ static InterpretResult run()
 #define READ_STRING() AS_STRING(READ_CONSTANT())
 #define BINARY_OP(value_type, op)                                              \
 	do {                                                                       \
-		if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) {                      \
-			runtimeError("Operands must be numbers.");                         \
+		Value b = pop();                                                       \
+		Value a = pop();                                                       \
+		if (IS_FLOAT(a) && IS_FLOAT(b)) {                                      \
+			if (value_type == VAL_BOOL) {                                      \
+				push(BOOL_VAL(AS_FLOAT(a) op AS_FLOAT(b)));                    \
+			} else {                                                           \
+				push(FLOAT_VAL(AS_FLOAT(a) op AS_FLOAT(b)));                   \
+			}                                                                  \
+		} else if (IS_INT(a) && IS_INT(b)) {                                   \
+			if (value_type == VAL_BOOL) {                                      \
+				push(BOOL_VAL(AS_INT(a) op AS_INT(b)));                        \
+			} else {                                                           \
+				push(INT_VAL(AS_INT(a) op AS_INT(b)));                         \
+			}                                                                  \
+		} else {                                                               \
+			runtimeError("Operands must be numbers of the same type");         \
 			return INTERPRET_RUNTIME_ERROR;                                    \
 		}                                                                      \
-		double b = AS_NUMBER(pop());                                           \
-		double a = AS_NUMBER(pop());                                           \
-		push(value_type(a op b));                                              \
 	} while (false)
 
 	while (1) {
@@ -394,31 +413,36 @@ static InterpretResult run()
 			break;
 		}
 		case OP_GREATER:
-			BINARY_OP(BOOL_VAL, >);
+			BINARY_OP(VAL_BOOL, >);
 			break;
 		case OP_LESS:
-			BINARY_OP(BOOL_VAL, <);
+			BINARY_OP(VAL_BOOL, <);
 			break;
 		case OP_ADD:
 			if (!runOpAdd())
 				return INTERPRET_RUNTIME_ERROR;
 			break;
 		case OP_SUBTRACT:
-			BINARY_OP(NUMBER_VAL, -);
+			BINARY_OP(VAL_NIL, -);
 			break;
 		case OP_MULTIPLY:
-			BINARY_OP(NUMBER_VAL, *);
+			BINARY_OP(VAL_NIL, *);
 			break;
 		case OP_DIVIDE:
-			BINARY_OP(NUMBER_VAL, /);
+			BINARY_OP(VAL_NIL, /);
 			break;
-		case OP_NEGATE:
-			if (!IS_NUMBER(peek(0))) {
+		case OP_NEGATE: {
+			Value value = peek(0);
+			if (IS_FLOAT(value)) {
+				push(FLOAT_VAL(-AS_FLOAT(value)));
+			} else if (IS_INT(value)) {
+				push(INT_VAL(-AS_INT(value)));
+			} else {
 				runtimeError("Operand must be a number");
 				return INTERPRET_RUNTIME_ERROR;
 			}
-			push(NUMBER_VAL(-AS_NUMBER(pop())));
 			break;
+		}
 		case OP_NOT:
 			push(BOOL_VAL(isFalsey(pop())));
 			break;
@@ -426,6 +450,30 @@ static InterpretResult run()
 			printValue(pop());
 			printf("\n");
 			break;
+		case OP_TO_FLOAT: {
+			Value value = pop();
+			if (IS_BOOL(value)) {
+				push(FLOAT_VAL(AS_BOOL(value) ? 1.0 : 0.0));
+			} else if (IS_INT(value)) {
+				push(FLOAT_VAL((double)AS_INT(value)));
+			} else {
+				runtimeError("Can only convert bool and int to float");
+				return INTERPRET_RUNTIME_ERROR;
+			}
+			break;
+		}
+		case OP_TO_INT: {
+			Value value = pop();
+			if (IS_BOOL(value)) {
+				push(INT_VAL(AS_BOOL(value) ? 1 : 0));
+			} else if (IS_FLOAT(value)) {
+				push(INT_VAL((long)AS_FLOAT(value)));
+			} else {
+				runtimeError("Can only convert bool and int to float");
+				return INTERPRET_RUNTIME_ERROR;
+			}
+			break;
+		}
 		case OP_JUMP: {
 			uint16_t offset = READ_SHORT();
 			frame->ip += offset;

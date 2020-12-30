@@ -915,10 +915,16 @@ static void literal(bool can_assign)
 	}
 }
 
-static void number(bool can_assign)
+static void floatNumber(bool can_assign)
 {
-	double value = strtol(parser.previous.start, 0, 10);
-	emitConstant(NUMBER_VAL(value));
+	double value = strtod(parser.previous.start, 0);
+	emitConstant(FLOAT_VAL(value));
+}
+
+static void intNumber(bool can_assign)
+{
+	long value = strtol(parser.previous.start, 0, 10);
+	emitConstant(INT_VAL(value));
 }
 
 static void string(bool can_assign)
@@ -941,6 +947,12 @@ static void unary(bool can_assign)
 	case TOKEN_MINUS:
 		emitByte(OP_NEGATE);
 		break;
+	case TOKEN_TO_FLOAT:
+		emitByte(OP_TO_FLOAT);
+		break;
+	case TOKEN_TO_INT:
+		emitByte(OP_TO_INT);
+		break;
 	default:
 		return;
 	}
@@ -961,17 +973,18 @@ ParseRule rules[] = {
 	[TOKEN_EQUAL_EQUAL] = { 0, binary, PREC_EQUALITY },
 	[TOKEN_ERROR] = { 0, 0, PREC_NONE },
 	[TOKEN_FALSE] = { literal, 0, PREC_NONE },
+	[TOKEN_FLOAT] = { floatNumber, 0, PREC_NONE },
 	[TOKEN_FUN] = { 0, 0, PREC_NONE },
 	[TOKEN_GREATER] = { 0, binary, PREC_COMPARISON },
 	[TOKEN_GREATER_EQUAL] = { 0, binary, PREC_COMPARISON },
 	[TOKEN_IDENTIFIER] = { variable, 0, PREC_NONE },
 	[TOKEN_IF] = { 0, 0, PREC_NONE },
+	[TOKEN_INT] = { intNumber, 0, PREC_NONE },
 	[TOKEN_LEFT_BRACE] = { 0, 0, PREC_NONE },
 	[TOKEN_LEFT_PARENTHESIS] = { grouping, call, PREC_CALL },
 	[TOKEN_LESS] = { 0, binary, PREC_COMPARISON },
 	[TOKEN_LESS_EQUAL] = { 0, binary, PREC_COMPARISON },
 	[TOKEN_MINUS] = { unary, binary, PREC_TERM },
-	[TOKEN_NUMBER] = { number, 0, PREC_NONE },
 	[TOKEN_NIL] = { literal, 0, PREC_NONE },
 	[TOKEN_OR] = { 0, orOp, PREC_OR },
 	[TOKEN_PLUS] = { 0, binary, PREC_TERM },
@@ -985,6 +998,8 @@ ParseRule rules[] = {
 	[TOKEN_STRING] = { string, 0, PREC_NONE },
 	[TOKEN_SUPER] = { zuper, 0, PREC_NONE },
 	[TOKEN_THIS] = { thiz, 0, PREC_NONE },
+	[TOKEN_TO_FLOAT] = { unary, 0, PREC_UNARY },
+	[TOKEN_TO_INT] = { unary, 0, PREC_UNARY },
 	[TOKEN_TRUE] = { literal, 0, PREC_NONE },
 	[TOKEN_VAR] = { 0, 0, PREC_NONE },
 	[TOKEN_WHILE] = { 0, 0, PREC_NONE },
