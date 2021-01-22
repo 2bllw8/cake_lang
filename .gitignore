@@ -1,0 +1,4 @@
+/build
+
+*.slice
+.DS_Store
