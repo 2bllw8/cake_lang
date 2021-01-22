@@ -251,8 +251,102 @@ static bool runOpAdd()
 		long a_num = AS_INT(pop());
 		push(INT_VAL(a_num + b_num));
 	} else {
-		fprintf(stderr, "\t\t a: %d, b: %d\n", a.type, b.type);
 		runtimeError("Operands must be two numbers or two strings");
+		return false;
+	}
+	return true;
+}
+
+static bool runOpSubtract()
+{
+	Value b = peek(0);
+	Value a = peek(1);
+	if (IS_FLOAT(a) && IS_FLOAT(b)) {
+		double b_num = AS_FLOAT(pop());
+		double a_num = AS_FLOAT(pop());
+		push(FLOAT_VAL(a_num - b_num));
+	} else if (IS_INT(a) && IS_INT(b)) {
+		long b_num = AS_INT(pop());
+		long a_num = AS_INT(pop());
+		push(INT_VAL(a_num - b_num));
+	} else {
+		runtimeError("Operands must be two numbers of the same type");
+		return false;
+	}
+	return true;
+}
+
+static bool runOpMultiply()
+{
+	Value b = peek(0);
+	Value a = peek(1);
+	if (IS_FLOAT(a) && IS_FLOAT(b)) {
+		double b_num = AS_FLOAT(pop());
+		double a_num = AS_FLOAT(pop());
+		push(FLOAT_VAL(a_num * b_num));
+	} else if (IS_INT(a) && IS_INT(b)) {
+		long b_num = AS_INT(pop());
+		long a_num = AS_INT(pop());
+		push(INT_VAL(a_num * b_num));
+	} else {
+		runtimeError("Operands must be two numbers of the same type");
+		return false;
+	}
+	return true;
+}
+
+static bool runOpDivide()
+{
+	Value b = peek(0);
+	Value a = peek(1);
+	if (IS_FLOAT(a) && IS_FLOAT(b)) {
+		double b_num = AS_FLOAT(pop());
+		double a_num = AS_FLOAT(pop());
+		push(FLOAT_VAL(a_num / b_num));
+	} else if (IS_INT(a) && IS_INT(b)) {
+		long b_num = AS_INT(pop());
+		long a_num = AS_INT(pop());
+		push(INT_VAL(a_num / b_num));
+	} else {
+		runtimeError("Operands must be two numbers of the same type");
+		return false;
+	}
+	return true;
+}
+
+static bool runOpGreater()
+{
+	Value b = peek(0);
+	Value a = peek(1);
+	if (IS_FLOAT(a) && IS_FLOAT(b)) {
+		double b_num = AS_FLOAT(pop());
+		double a_num = AS_FLOAT(pop());
+		push(BOOL_VAL(a_num > b_num));
+	} else if (IS_INT(a) && IS_INT(b)) {
+		long b_num = AS_INT(pop());
+		long a_num = AS_INT(pop());
+		push(BOOL_VAL(a_num > b_num));
+	} else {
+		runtimeError("Operands must be two numbers of the same type");
+		return false;
+	}
+	return true;
+}
+
+static bool runOpLess()
+{
+	Value b = peek(0);
+	Value a = peek(1);
+	if (IS_FLOAT(a) && IS_FLOAT(b)) {
+		double b_num = AS_FLOAT(pop());
+		double a_num = AS_FLOAT(pop());
+		push(BOOL_VAL(a_num < b_num));
+	} else if (IS_INT(a) && IS_INT(b)) {
+		long b_num = AS_INT(pop());
+		long a_num = AS_INT(pop());
+		push(BOOL_VAL(a_num < b_num));
+	} else {
+		runtimeError("Operands must be two numbers of the same type");
 		return false;
 	}
 	return true;
@@ -283,27 +377,6 @@ static InterpretResult run()
 #define READ_SHORT()                                                           \
 	(frame->ip += 2, (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 #define READ_STRING() AS_STRING(READ_CONSTANT())
-#define BINARY_OP(value_type, op)                                              \
-	do {                                                                       \
-		Value b = pop();                                                       \
-		Value a = pop();                                                       \
-		if (IS_FLOAT(a) && IS_FLOAT(b)) {                                      \
-			if (value_type == VAL_BOOL) {                                      \
-				push(BOOL_VAL(AS_FLOAT(a) op AS_FLOAT(b)));                    \
-			} else {                                                           \
-				push(FLOAT_VAL(AS_FLOAT(a) op AS_FLOAT(b)));                   \
-			}                                                                  \
-		} else if (IS_INT(a) && IS_INT(b)) {                                   \
-			if (value_type == VAL_BOOL) {                                      \
-				push(BOOL_VAL(AS_INT(a) op AS_INT(b)));                        \
-			} else {                                                           \
-				push(INT_VAL(AS_INT(a) op AS_INT(b)));                         \
-			}                                                                  \
-		} else {                                                               \
-			runtimeError("Operands must be numbers of the same type");         \
-			return INTERPRET_RUNTIME_ERROR;                                    \
-		}                                                                      \
-	} while (false)
 
 	while (1) {
 		trace_execution(frame);
@@ -413,23 +486,28 @@ static InterpretResult run()
 			break;
 		}
 		case OP_GREATER:
-			BINARY_OP(VAL_BOOL, >);
+			if (!runOpGreater())
+				return INTERPRET_RUNTIME_ERROR;
 			break;
 		case OP_LESS:
-			BINARY_OP(VAL_BOOL, <);
+			if (!runOpLess())
+				return INTERPRET_RUNTIME_ERROR;
 			break;
 		case OP_ADD:
 			if (!runOpAdd())
 				return INTERPRET_RUNTIME_ERROR;
 			break;
 		case OP_SUBTRACT:
-			BINARY_OP(VAL_NIL, -);
+			if (!runOpSubtract())
+				return INTERPRET_RUNTIME_ERROR;
 			break;
 		case OP_MULTIPLY:
-			BINARY_OP(VAL_NIL, *);
+			if (!runOpMultiply())
+				return INTERPRET_RUNTIME_ERROR;
 			break;
 		case OP_DIVIDE:
-			BINARY_OP(VAL_NIL, /);
+			if (!runOpDivide())
+				return INTERPRET_RUNTIME_ERROR;
 			break;
 		case OP_NEGATE: {
 			Value value = peek(0);

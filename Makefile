@@ -6,7 +6,7 @@ CFLAGS := -Wall -Wextra -Werror -Wno-unused-parameter
 CFLAGS += -fstack-protector -D_FORTIFY_SOURCE=2
 
 ifeq ($(MODE), debug)
-	CFLAGS += -O0 -DDEBUG -g
+	CFLAGS += -O -DDEBUG -g
 	BUILD_DIR := build/debug
 else
 	CFLAGS += -O3 -flto
